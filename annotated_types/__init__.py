@@ -151,14 +151,18 @@ class Le(BaseMetadata):
 
 @runtime_checkable
 class GroupedMetadata(Protocol):
-    """A grouping of multiple BaseMetadata objects.
+    """A grouping of multiple objects, like typing.Unpack.
+
+    `GroupedMetadata` represents a collection of objects that should be treated
+    as if they were "unpacked" in an Annotated type. This behavior is similar to
+    typing.Unpack, allowing for flexible composition of metadata.
 
     `GroupedMetadata` on its own is not metadata and has no meaning.
     All of the constraints and metadata should be fully expressable
-    in terms of the `BaseMetadata`'s returned by `GroupedMetadata.__iter__()`.
+    in terms of the objects returned by `GroupedMetadata.__iter__()`.
 
     Concrete implementations should override `GroupedMetadata.__iter__()`
-    to add their own metadata.
+    to yield their own metadata objects.
     For example:
 
     >>> @dataclass
@@ -166,26 +170,26 @@ class GroupedMetadata(Protocol):
     >>>     gt: float | None = None
     >>>     description: str | None = None
     ...
-    >>>     def __iter__(self) -> Iterable[BaseMetadata]:
+    >>>     def __iter__(self) -> Iterable[object]:
     >>>         if self.gt is not None:
     >>>             yield Gt(self.gt)
     >>>         if self.description is not None:
-    >>>             yield Description(self.gt)
+    >>>             yield Description(self.description)
 
     Also see the implementation of `Interval` below for an example.
 
     Parsers should recognize this and unpack it so that it can be used
-    both with and without unpacking:
+    both with and without explicit unpacking:
 
     - `Annotated[int, Field(...)]` (parser must unpack Field)
-    - `Annotated[int, *Field(...)]` (PEP-646)
-    """  # noqa: trailing-whitespace
+    - `Annotated[int, *Field(...)]` (PEP-646 style unpacking)
+    """
 
     @property
     def __is_annotated_types_grouped_metadata__(self) -> Literal[True]:
         return True
 
-    def __iter__(self) -> Iterator[BaseMetadata]:
+    def __iter__(self) -> Iterator[object]:
         ...
 
     if not TYPE_CHECKING:
@@ -197,7 +201,7 @@ class GroupedMetadata(Protocol):
             if cls.__iter__ is GroupedMetadata.__iter__:
                 raise TypeError("Can't subclass GroupedMetadata without implementing __iter__")
 
-        def __iter__(self) -> Iterator[BaseMetadata]:  # noqa: F811
+        def __iter__(self) -> Iterator[object]:  # noqa: F811
             raise NotImplementedError  # more helpful than "None has no attribute..." type errors
 
 
